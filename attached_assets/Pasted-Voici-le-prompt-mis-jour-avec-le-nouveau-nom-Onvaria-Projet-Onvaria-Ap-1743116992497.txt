@@ -1,0 +1,71 @@
+Voici le prompt mis à jour avec le nouveau nom **Onvaria** :  
+
+---
+
+### **Projet : Onvaria – Application SaaS de gestion de services de réparation**  
+
+Développe une application SaaS **scalable et sécurisée**, dédiée aux professionnels de la réparation (téléphones, informatique, objets connectés). L’application doit intégrer la gestion complète des tickets, des paiements (en ligne et en boutique) et des notifications client.  
+
+### 🔹 **Technologies recommandées**  
+- **Backend** : Node.js (NestJS) ou Django (FastAPI possible), API REST/GraphQL  
+- **Frontend** : React (Next.js) ou Vue.js (Nuxt.js)  
+- **Base de données** : PostgreSQL + Prisma / Sequelize  
+- **Authentification** : JWT + OAuth2  
+- **Stockage fichiers** : AWS S3 ou équivalent  
+- **Notifications** : Webhooks + API Twilio / SendGrid / WhatsApp  
+- **Paiement** : Stripe API + Paiement en boutique (POS / QR Code / Cash)  
+- **Logs & Monitoring** : Sentry, LogRocket, Prometheus  
+
+### 🛠 **Modules & Fonctionnalités principales**  
+#### 📌 1. Gestion des tickets de réparation  
+- Création et suivi des tickets avec statuts dynamiques (Réceptionné, Diagnostiqué, En cours, Terminé, Prêt)  
+- Historique des statuts avec timestamps  
+- Assignation des tickets aux techniciens  
+- Upload de pièces jointes (stockage sur AWS S3 ou équivalent)  
+
+#### 💰 2. Facturation et devis  
+- Génération de devis et factures PDF (via pdfmake ou Puppeteer)  
+- Suivi des paiements : en attente / payé  
+- Générateur de factures personnalisables par entreprise  
+
+#### 💳 3. Paiements intégrés (en ligne & en boutique)  
+- Paiement en ligne via Stripe API (liens de paiement sécurisés)  
+- Paiement en boutique :  
+  - Encaissement en espèces / carte  
+  - QR Code pour paiement instantané  
+  - Interface caisse pour marquer une facture comme payée  
+
+#### 🔔 4. Notifications automatisées  
+- Alertes client (Email / SMS / WhatsApp) sur l’état du ticket  
+- Option pour intégrer des API de notification personnalisées  
+- Webhooks pour automatiser les mises à jour  
+
+#### 🖥 5. Interface client  
+- Suivi des réparations via un lien unique  
+- Accès à l’historique des réparations et factures  
+
+#### 📊 6. Dashboard analytique  
+- Nombre de tickets traités, temps moyen de réparation  
+- Suivi des paiements et chiffre d’affaires  
+- Statistiques de satisfaction client  
+
+#### 🔐 7. Sécurité et scalabilité  
+- API sécurisée avec JWT et gestion fine des permissions  
+- Gestion multi-entreprises avec séparation des données  
+- Sauvegarde automatique de la base PostgreSQL  
+- Monitoring et gestion des erreurs avec Sentry / LogRocket  
+
+### 🔄 **Scénario d’utilisation**  
+1. **Connexion sécurisée (JWT + OAuth2)**  
+2. **Création d’un ticket** par un technicien ou un manager  
+3. **Mise à jour du statut** par le technicien avec envoi automatique d’une notification au client  
+4. **Génération et envoi de la facture** lorsque la réparation est terminée  
+5. **Paiement du client** (en ligne via Stripe ou en boutique)  
+6. **Confirmation du paiement** et clôture du ticket  
+7. **Analyse des performances** via le dashboard  
+
+💡 **Bonus :** Ajouter une API publique pour permettre aux boutiques d’intégrer **Onvaria** à leurs propres outils.  
+
+---
+
+Ce prompt assure une vision claire et technique du projet **Onvaria**, avec des choix technologiques modernes et une architecture modulaire. 🚀
