@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Ticket, TicketStatus } from "@shared/schema";
-import { Pagination } from "@/components/ui/pagination";
+import { CustomPagination } from "@/components/ui/custom-pagination";
 import { TicketModal } from "@/components/tickets/ticket-modal";
+import { TicketDetails } from "@/components/tickets/ticket-details";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,7 @@ const ticketStatusStyles: Record<
 export function TicketList() {
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const itemsPerPage = 5;
   const { toast } = useToast();
 
@@ -84,6 +86,16 @@ export function TicketList() {
   const paginatedTickets = tickets
     ? tickets.slice((page - 1) * itemsPerPage, page * itemsPerPage)
     : [];
+
+  // If a ticket is selected, show the ticket details
+  if (selectedTicketId) {
+    return (
+      <TicketDetails
+        ticketId={selectedTicketId}
+        onClose={() => setSelectedTicketId(null)}
+      />
+    );
+  }
 
   return (
     <>
@@ -171,7 +183,11 @@ export function TicketList() {
                     const statusStyle = ticketStatusStyles[ticket.status];
                     
                     return (
-                      <tr key={ticket.id} className="hover:bg-neutral-50">
+                      <tr 
+                        key={ticket.id} 
+                        className="hover:bg-neutral-50 cursor-pointer"
+                        onClick={() => setSelectedTicketId(ticket.id)}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600">
                           #{ticket.id}
                         </td>
@@ -202,7 +218,7 @@ export function TicketList() {
 
         <CardFooter className="border-t border-neutral-200 px-4 py-4 sm:px-6">
           {tickets && tickets.length > 0 && (
-            <Pagination
+            <CustomPagination
               className="w-full"
               count={Math.ceil(tickets.length / itemsPerPage)}
               page={page}

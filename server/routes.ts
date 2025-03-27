@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { insertTicketSchema, insertClientSchema, insertPaymentSchema, insertInvoiceSchema, insertNotificationSchema } from "@shared/schema";
+import { insertTicketSchema, insertClientSchema, insertPaymentSchema, insertInvoiceSchema, insertNotificationSchema, insertTicketCommentSchema } from "@shared/schema";
+import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
 
 // Initialize Stripe with the secret key from environment variables
@@ -252,6 +253,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // Ticket comments routes
+  app.get("/api/tickets/:id/comments", isAuthenticated, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      const comments = await storage.getTicketComments(ticketId);
+      res.json(comments);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/tickets/:id/comments", isAuthenticated, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      const username = req.user?.username || "Unknown User";
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const ticket = await storage.getTicket(ticketId);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      const validatedData = insertTicketCommentSchema.parse({
+        ...req.body,
+        ticketId,
+        userId,
+        username
+      });
+      
+      const comment = await storage.createTicketComment(validatedData);
+      
+      // Broadcast to all connected WebSocket clients
+      broadcastToTicket(ticketId, {
+        type: "NEW_COMMENT",
+        data: comment
+      });
+      
+      res.status(201).json(comment);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors });
+      } else {
+        res.status(500).json({ message: err.message });
+      }
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server for real-time comments
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Keep track of clients connected to specific tickets
+  const ticketConnections = new Map<number, Set<WebSocket>>();
+  
+  wss.on('connection', (ws, req) => {
+    // Extract ticket ID from URL query parameters
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    const ticketId = parseInt(url.searchParams.get('ticketId') || '0');
+    
+    if (!ticketId) {
+      ws.close(1008, 'Missing ticket ID');
+      return;
+    }
+    
+    // Add client to ticket connections
+    if (!ticketConnections.has(ticketId)) {
+      ticketConnections.set(ticketId, new Set());
+    }
+    ticketConnections.get(ticketId)?.add(ws);
+    
+    // Send initial comments
+    storage.getTicketComments(ticketId).then(comments => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "INIT_COMMENTS",
+          data: comments
+        }));
+      }
+    });
+    
+    // Handle client disconnection
+    ws.on('close', () => {
+      const connections = ticketConnections.get(ticketId);
+      if (connections) {
+        connections.delete(ws);
+        if (connections.size === 0) {
+          ticketConnections.delete(ticketId);
+        }
+      }
+    });
+    
+    // Handle messages from client (not needed for this implementation)
+    ws.on('message', (message) => {
+      // Could handle client messages here if needed
+      console.log('Received message from client:', message.toString());
+    });
+  });
+  
+  // Function to broadcast a message to all clients connected to a specific ticket
+  function broadcastToTicket(ticketId: number, message: any) {
+    const connections = ticketConnections.get(ticketId);
+    if (connections) {
+      const messageStr = JSON.stringify(message);
+      connections.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(messageStr);
+        }
+      });
+    }
+  }
+  
   return httpServer;
 }

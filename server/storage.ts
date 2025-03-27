@@ -1,4 +1,4 @@
-import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification } from "@shared/schema";
+import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification, ticketComments, TicketComment, InsertTicketComment } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -52,6 +52,57 @@ export interface IStorage {
   getAvgResolutionTime(): Promise<string>;
 }
 
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
+  // Session store
+  sessionStore: session.Store;
+  
+  // Ticket operations
+  getAllTickets(): Promise<Ticket[]>;
+  getTicket(id: number): Promise<Ticket | undefined>;
+  createTicket(ticket: InsertTicket): Promise<Ticket>;
+  updateTicket(id: number, ticket: Partial<InsertTicket>): Promise<Ticket | undefined>;
+  deleteTicket(id: number): Promise<boolean>;
+  countActiveTickets(): Promise<number>;
+  countUrgentTickets(): Promise<number>;
+  
+  // Ticket comments operations
+  getTicketComments(ticketId: number): Promise<TicketComment[]>;
+  createTicketComment(comment: InsertTicketComment): Promise<TicketComment>;
+  
+  // Client operations
+  getAllClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined>;
+  deleteClient(id: number): Promise<boolean>;
+  
+  // Invoice operations
+  getAllInvoices(): Promise<Invoice[]>;
+  getInvoice(id: number): Promise<Invoice | undefined>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
+  deleteInvoice(id: number): Promise<boolean>;
+  
+  // Payment operations
+  getAllPayments(): Promise<Payment[]>;
+  getPayment(id: number): Promise<Payment | undefined>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getMonthlyRevenue(): Promise<number>;
+  
+  // Notification operations
+  getNotifications(userId: number | undefined): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markAllNotificationsAsRead(userId: number | undefined): Promise<void>;
+  
+  // Analytics operations
+  getAvgResolutionTime(): Promise<string>;
+}
+
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private tickets: Map<number, Ticket>;
@@ -59,6 +110,7 @@ export class MemStorage implements IStorage {
   private invoices: Map<number, Invoice>;
   private payments: Map<number, Payment>;
   private notifications: Map<number, Notification>;
+  private ticketComments: Map<number, TicketComment>;
   public sessionStore: session.Store;
   
   private userIdCounter: number;
@@ -67,6 +119,7 @@ export class MemStorage implements IStorage {
   private invoiceIdCounter: number;
   private paymentIdCounter: number;
   private notificationIdCounter: number;
+  private commentIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -75,6 +128,7 @@ export class MemStorage implements IStorage {
     this.invoices = new Map();
     this.payments = new Map();
     this.notifications = new Map();
+    this.ticketComments = new Map();
     
     this.userIdCounter = 1;
     this.ticketIdCounter = 1;
@@ -82,6 +136,7 @@ export class MemStorage implements IStorage {
     this.invoiceIdCounter = 1;
     this.paymentIdCounter = 1;
     this.notificationIdCounter = 1;
+    this.commentIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
@@ -643,6 +698,42 @@ export class MemStorage implements IStorage {
       });
   }
 
+  // Ticket comments methods
+  async getTicketComments(ticketId: number): Promise<TicketComment[]> {
+    return Array.from(this.ticketComments.values())
+      .filter(comment => comment.ticketId === ticketId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+  
+  async createTicketComment(comment: InsertTicketComment): Promise<TicketComment> {
+    const id = this.commentIdCounter++;
+    const ticketComment: TicketComment = {
+      ...comment,
+      id,
+      createdAt: new Date(),
+    };
+    
+    this.ticketComments.set(id, ticketComment);
+    
+    // Create a notification for the ticket owner if applicable
+    const ticket = await this.getTicket(comment.ticketId);
+    if (ticket && ticket.technicianId && ticket.technicianId !== comment.userId) {
+      await this.createNotification({
+        userId: ticket.technicianId,
+        type: "INFO",
+        title: `New comment on Ticket #${ticket.id}`,
+        message: `${comment.username} commented: ${comment.content.substring(0, 50)}${comment.content.length > 50 ? '...' : ''}`,
+        resourceId: ticket.id,
+        resourceType: "ticket",
+        isRead: false,
+        actionLabel: "View",
+        actionUrl: `/tickets/${ticket.id}`,
+      });
+    }
+    
+    return ticketComment;
+  }
+  
   // Analytics
   async getAvgResolutionTime(): Promise<string> {
     const completedTickets = Array.from(this.tickets.values())
