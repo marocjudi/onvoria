@@ -70,7 +70,7 @@ export function Sidebar({ className }: SidebarProps) {
           current: location === "/settings",
         },
         {
-          name: "Help & Support",
+          name: t("common.help"),
           href: "/help",
           icon: HelpCircle,
           current: location === "/help",
