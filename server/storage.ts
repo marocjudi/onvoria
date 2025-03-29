@@ -1,4 +1,4 @@
-import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification, ticketComments, TicketComment, InsertTicketComment } from "@shared/schema";
+import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification, ticketComments, TicketComment, InsertTicketComment, notificationTemplates, NotificationTemplate, InsertNotificationTemplate } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
@@ -103,6 +103,12 @@ export interface IStorage {
   getNotifications(userId: number | undefined): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markAllNotificationsAsRead(userId: number | undefined): Promise<void>;
+  // Notification template operations
+  getActiveTemplatesByType(type: string, channel: string): Promise<NotificationTemplate[]>;
+  createNotificationTemplate(template: InsertNotificationTemplate): Promise<NotificationTemplate>;
+  updateNotificationTemplate(id: number, template: Partial<InsertNotificationTemplate>): Promise<NotificationTemplate | undefined>;
+  deleteNotificationTemplate(id: number): Promise<boolean>;
+
   
   // Analytics operations
   getAvgResolutionTime(): Promise<string>;
@@ -116,6 +122,7 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment>;
   private notifications: Map<number, Notification>;
   private ticketComments: Map<number, TicketComment>;
+  private notificationTemplates: Map<number, NotificationTemplate>;
   public sessionStore: session.Store;
   
   private userIdCounter: number;
@@ -125,6 +132,7 @@ export class MemStorage implements IStorage {
   private paymentIdCounter: number;
   private notificationIdCounter: number;
   private commentIdCounter: number;
+  private notificationTemplateIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -134,6 +142,7 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.notifications = new Map();
     this.ticketComments = new Map();
+    this.notificationTemplates = new Map();
     
     this.userIdCounter = 1;
     this.ticketIdCounter = 1;
@@ -142,6 +151,7 @@ export class MemStorage implements IStorage {
     this.paymentIdCounter = 1;
     this.notificationIdCounter = 1;
     this.commentIdCounter = 1;
+    this.notificationTemplateIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
@@ -702,6 +712,49 @@ export class MemStorage implements IStorage {
         this.notifications.set(notification.id, notification);
       });
   }
+  
+  // Notification template methods
+  async getActiveTemplatesByType(type: string, channel: string): Promise<NotificationTemplate[]> {
+    return Array.from(this.notificationTemplates.values())
+      .filter(template => 
+        template.type === type && 
+        template.channel === channel && 
+        template.isActive
+      );
+  }
+  
+  async createNotificationTemplate(template: InsertNotificationTemplate): Promise<NotificationTemplate> {
+    const id = this.notificationTemplateIdCounter++;
+    const notificationTemplate: NotificationTemplate = {
+      ...template,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.notificationTemplates.set(id, notificationTemplate);
+    return notificationTemplate;
+  }
+  
+  async updateNotificationTemplate(id: number, templateUpdate: Partial<InsertNotificationTemplate>): Promise<NotificationTemplate | undefined> {
+    const existingTemplate = this.notificationTemplates.get(id);
+    if (!existingTemplate) {
+      return undefined;
+    }
+    
+    const updatedTemplate: NotificationTemplate = {
+      ...existingTemplate,
+      ...templateUpdate,
+      updatedAt: new Date(),
+    };
+    
+    this.notificationTemplates.set(id, updatedTemplate);
+    return updatedTemplate;
+  }
+  
+  async deleteNotificationTemplate(id: number): Promise<boolean> {
+    return this.notificationTemplates.delete(id);
+  }
 
   // Ticket comments methods
   async getTicketComments(ticketId: number): Promise<TicketComment[]> {
@@ -1033,6 +1086,44 @@ export class DatabaseStorage implements IStorage {
     await db.update(notifications)
       .set({ isRead: true })
       .where(userId ? eq(notifications.userId, userId) : sql`TRUE`);
+  }
+  
+  // Notification template methods
+  async getActiveTemplatesByType(type: string, channel: string): Promise<NotificationTemplate[]> {
+    return await db.select()
+      .from(notificationTemplates)
+      .where(and(
+        eq(notificationTemplates.type, type as any),
+        eq(notificationTemplates.channel, channel as any),
+        eq(notificationTemplates.isActive, true)
+      ));
+  }
+  
+  async createNotificationTemplate(template: InsertNotificationTemplate): Promise<NotificationTemplate> {
+    const [notificationTemplate] = await db.insert(notificationTemplates)
+      .values(template)
+      .returning();
+    
+    return notificationTemplate;
+  }
+  
+  async updateNotificationTemplate(id: number, templateUpdate: Partial<InsertNotificationTemplate>): Promise<NotificationTemplate | undefined> {
+    const [updatedTemplate] = await db.update(notificationTemplates)
+      .set({
+        ...templateUpdate,
+        updatedAt: new Date()
+      })
+      .where(eq(notificationTemplates.id, id))
+      .returning();
+    
+    return updatedTemplate;
+  }
+  
+  async deleteNotificationTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(notificationTemplates)
+      .where(eq(notificationTemplates.id, id));
+    
+    return !!result;
   }
   
   // Analytics methods

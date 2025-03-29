@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { insertTicketSchema, insertClientSchema, insertPaymentSchema, insertInvoiceSchema, insertNotificationSchema, insertTicketCommentSchema } from "@shared/schema";
+import { insertTicketSchema, insertClientSchema, insertPaymentSchema, insertInvoiceSchema, insertNotificationSchema, insertTicketCommentSchema, insertNotificationTemplateSchema } from "@shared/schema";
 import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
 
@@ -208,6 +208,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await storage.markAllNotificationsAsRead(req.user?.id);
       res.sendStatus(200);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  
+  // Notification Templates routes
+  app.get("/api/notification-templates", isAuthenticated, async (req, res) => {
+    try {
+      const { type, channel } = req.query;
+      
+      if (type && channel) {
+        // Get active templates by type and channel
+        const templates = await storage.getActiveTemplatesByType(type.toString(), channel.toString());
+        res.json(templates);
+      } else {
+        // Return error if type and channel are not provided
+        res.status(400).json({ message: "Type and channel parameters are required" });
+      }
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  
+  app.post("/api/notification-templates", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertNotificationTemplateSchema.parse(req.body);
+      const template = await storage.createNotificationTemplate(validatedData);
+      res.status(201).json(template);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors });
+      } else {
+        res.status(500).json({ message: err.message });
+      }
+    }
+  });
+  
+  app.patch("/api/notification-templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const validatedData = insertNotificationTemplateSchema.partial().parse(req.body);
+      const updatedTemplate = await storage.updateNotificationTemplate(templateId, validatedData);
+      if (!updatedTemplate) {
+        return res.status(404).json({ message: "Notification template not found" });
+      }
+      res.json(updatedTemplate);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors });
+      } else {
+        res.status(500).json({ message: err.message });
+      }
+    }
+  });
+  
+  app.delete("/api/notification-templates/:id", isAuthenticated, async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const success = await storage.deleteNotificationTemplate(templateId);
+      if (!success) {
+        return res.status(404).json({ message: "Notification template not found" });
+      }
+      res.sendStatus(204);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

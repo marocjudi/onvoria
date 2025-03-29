@@ -89,6 +89,10 @@ export const clients = pgTable("clients", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   ticketCount: integer("ticket_count").default(0),
+  // Notification preferences
+  smsNotifications: boolean("sms_notifications").default(false),
+  whatsappNotifications: boolean("whatsapp_notifications").default(false),
+  emailNotifications: boolean("email_notifications").default(true),
 });
 
 export const insertClientSchema = createInsertSchema(clients).omit({
@@ -205,3 +209,28 @@ export const insertTicketCommentSchema = createInsertSchema(ticketComments).omit
 
 export type InsertTicketComment = z.infer<typeof insertTicketCommentSchema>;
 export type TicketComment = typeof ticketComments.$inferSelect;
+
+// Notification channels enum
+export const NotificationChannelEnum = pgEnum("notification_channel", ["SMS", "EMAIL", "WHATSAPP", "APP"]);
+
+// Notification templates schema
+export const notificationTemplates = pgTable("notification_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: NotificationTypeEnum("type").notNull(),
+  channel: NotificationChannelEnum("channel").notNull(),
+  subject: text("subject").notNull(),
+  template: text("template").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertNotificationTemplateSchema = createInsertSchema(notificationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertNotificationTemplate = z.infer<typeof insertNotificationTemplateSchema>;
+export type NotificationTemplate = typeof notificationTemplates.$inferSelect;
