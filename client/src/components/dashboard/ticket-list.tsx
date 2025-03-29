@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Ticket, TicketStatus } from "@shared/schema";
-import { CustomPagination } from "@/components/ui/custom-pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { TicketModal } from "@/components/tickets/ticket-modal";
 import { TicketDetails } from "@/components/tickets/ticket-details";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -218,12 +218,37 @@ export function TicketList() {
 
         <CardFooter className="border-t border-neutral-200 px-4 py-4 sm:px-6">
           {tickets && tickets.length > 0 && (
-            <CustomPagination
-              className="w-full"
-              count={Math.ceil(tickets.length / itemsPerPage)}
-              page={page}
-              onPageChange={setPage}
-            />
+            <Pagination className="w-full">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.min(5, Math.ceil(tickets.length / itemsPerPage)) }).map((_, i) => {
+                  const pageNumber = i + 1;
+                  return (
+                    <PaginationItem key={i}>
+                      <PaginationLink 
+                        isActive={page === pageNumber}
+                        onClick={() => setPage(pageNumber)}
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setPage(p => Math.min(Math.ceil(tickets.length / itemsPerPage), p + 1))}
+                    className={page >= Math.ceil(tickets.length / itemsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           )}
         </CardFooter>
       </Card>
