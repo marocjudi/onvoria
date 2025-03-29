@@ -9,7 +9,11 @@ import {
   Settings,
   HelpCircle,
   Wrench,
+  LogOut,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/use-auth";
+import { LanguageSelector } from "./language-selector";
 
 interface SidebarProps {
   className?: string;
@@ -17,37 +21,39 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
+  const { t } = useTranslation();
+  const { logoutMutation } = useAuth();
 
   const navigationItems = [
     {
-      title: "Main",
+      title: t("common.dashboard"),
       items: [
         {
-          name: "Dashboard",
+          name: t("common.dashboard"),
           href: "/",
           icon: LayoutDashboard,
           current: location === "/",
         },
         {
-          name: "Tickets",
+          name: t("common.tickets"),
           href: "/tickets",
           icon: Ticket,
           current: location === "/tickets",
         },
         {
-          name: "Invoices",
+          name: t("common.invoices"),
           href: "/invoices",
           icon: FileText,
           current: location === "/invoices",
         },
         {
-          name: "Payments",
+          name: t("common.payments"),
           href: "/payments",
           icon: DollarSign,
           current: location === "/payments",
         },
         {
-          name: "Clients",
+          name: t("common.clients"),
           href: "/clients",
           icon: Users,
           current: location === "/clients",
@@ -55,10 +61,10 @@ export function Sidebar({ className }: SidebarProps) {
       ],
     },
     {
-      title: "Settings",
+      title: t("common.settings"),
       items: [
         {
-          name: "Settings",
+          name: t("common.settings"),
           href: "/settings",
           icon: Settings,
           current: location === "/settings",
@@ -116,6 +122,20 @@ export function Sidebar({ className }: SidebarProps) {
             </ul>
           </div>
         ))}
+      </div>
+
+      {/* Language selector and logout */}
+      <div className="border-t border-neutral-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <LanguageSelector />
+          <button
+            onClick={() => logoutMutation.mutate()}
+            className="flex items-center text-sm text-neutral-700 hover:text-primary"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            {t("common.logout")}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -10,12 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { User, Building, Bell, Shield, CreditCard } from "lucide-react";
+import { User, Building, Bell, Shield, CreditCard, Globe, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useMobile();
   const { user, logoutMutation } = useAuth();
+  const { t, i18n } = useTranslation();
 
   return (
     <div className="bg-neutral-100 h-screen flex overflow-hidden">
@@ -321,6 +324,41 @@ export default function SettingsPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+
+            {/* Language Settings Card */}
+            <div className="mt-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center gap-4">
+                  <Globe className="h-6 w-6 text-primary" />
+                  <div>
+                    <h3 className="text-lg font-medium">{t('settings.language')}</h3>
+                    <p className="text-sm text-neutral-500">
+                      {t('settings.chooseYourPreferredLanguage')}
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <RadioGroup 
+                    defaultValue={i18n.language}
+                    onValueChange={(value) => i18n.changeLanguage(value)}
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="en" id="language-en" />
+                      <Label htmlFor="language-en">{t('settings.english')}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="fr" id="language-fr" />
+                      <Label htmlFor="language-fr">{t('settings.french')}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="es" id="language-es" />
+                      <Label htmlFor="language-es">{t('settings.spanish')}</Label>
+                    </div>
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </main>
       </div>
