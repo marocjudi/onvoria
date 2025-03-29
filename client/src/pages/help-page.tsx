@@ -118,9 +118,9 @@ export default function HelpPage() {
         <main className="flex-1 overflow-y-auto bg-neutral-50">
           <div className="py-6 px-4 sm:px-6 lg:px-8">
             <div className="mb-6">
-              <h1 className="text-2xl font-semibold text-neutral-800">Help & Support</h1>
+              <h1 className="text-2xl font-semibold text-neutral-800">{t('help.title')}</h1>
               <p className="mt-1 text-sm text-neutral-600">
-                Get help with using the Onvaria repair management system
+                {t('help.subtitle')}
               </p>
             </div>
 
@@ -128,15 +128,15 @@ export default function HelpPage() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="faq" className="flex items-center space-x-2">
                   <FileQuestion className="h-4 w-4" />
-                  <span>FAQ</span>
+                  <span>{t('help.faq')}</span>
                 </TabsTrigger>
                 <TabsTrigger value="guides" className="flex items-center space-x-2">
                   <LifeBuoy className="h-4 w-4" />
-                  <span>User Guides</span>
+                  <span>{t('help.userGuides')}</span>
                 </TabsTrigger>
                 <TabsTrigger value="contact" className="flex items-center space-x-2">
                   <MessageCircle className="h-4 w-4" />
-                  <span>Contact Support</span>
+                  <span>{t('help.contactSupport')}</span>
                 </TabsTrigger>
               </TabsList>
               
@@ -144,14 +144,14 @@ export default function HelpPage() {
               <TabsContent value="faq" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Frequently Asked Questions</CardTitle>
-                    <CardDescription>Find answers to common questions about using Onvaria</CardDescription>
+                    <CardTitle>{t('help.frequentlyAskedQuestions')}</CardTitle>
+                    <CardDescription>{t('help.findAnswers')}</CardDescription>
                     
                     <div className="relative mt-4">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500" />
                       <Input
                         type="search"
-                        placeholder="Search questions..."
+                        placeholder={t('help.searchQuestions')}
                         className="pl-9"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -171,8 +171,8 @@ export default function HelpPage() {
                         ))
                       ) : (
                         <div className="text-center py-6">
-                          <p className="text-neutral-500">No matching questions found.</p>
-                          <p className="text-sm mt-2">Try a different search term or contact support for assistance.</p>
+                          <p className="text-neutral-500">{t('help.noMatchingQuestions')}</p>
+                          <p className="text-sm mt-2">{t('help.tryDifferentSearch')}</p>
                         </div>
                       )}
                     </Accordion>
@@ -184,56 +184,56 @@ export default function HelpPage() {
               <TabsContent value="guides" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>User Guides</CardTitle>
-                    <CardDescription>Comprehensive guides to help you make the most of Onvaria</CardDescription>
+                    <CardTitle>{t('help.userGuides')}</CardTitle>
+                    <CardDescription>{t('help.guidesDescription')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Getting Started</CardTitle>
+                          <CardTitle className="text-lg">{t('help.gettingStarted')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-neutral-600 mb-4">
-                            Learn the basics of setting up and using Onvaria for your repair business.
+                            {t('help.gettingStartedDesc')}
                           </p>
-                          <Button variant="outline" className="w-full">View Guide</Button>
+                          <Button variant="outline" className="w-full">{t('help.viewGuide')}</Button>
                         </CardContent>
                       </Card>
                       
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Ticket Management</CardTitle>
+                          <CardTitle className="text-lg">{t('help.ticketManagement')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-neutral-600 mb-4">
-                            Master the complete ticket lifecycle from creation to completion.
+                            {t('help.ticketManagementDesc')}
                           </p>
-                          <Button variant="outline" className="w-full">View Guide</Button>
+                          <Button variant="outline" className="w-full">{t('help.viewGuide')}</Button>
                         </CardContent>
                       </Card>
                       
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Client Management</CardTitle>
+                          <CardTitle className="text-lg">{t('help.clientManagement')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-neutral-600 mb-4">
-                            Learn how to manage client information efficiently and effectively.
+                            {t('help.clientManagementDesc')}
                           </p>
-                          <Button variant="outline" className="w-full">View Guide</Button>
+                          <Button variant="outline" className="w-full">{t('help.viewGuide')}</Button>
                         </CardContent>
                       </Card>
                       
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Invoicing & Payments</CardTitle>
+                          <CardTitle className="text-lg">{t('help.invoicingPayments')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-neutral-600 mb-4">
-                            Understand how to create invoices and process payments seamlessly.
+                            {t('help.invoicingPaymentsDesc')}
                           </p>
-                          <Button variant="outline" className="w-full">View Guide</Button>
+                          <Button variant="outline" className="w-full">{t('help.viewGuide')}</Button>
                         </CardContent>
                       </Card>
                     </div>
@@ -245,9 +245,9 @@ export default function HelpPage() {
               <TabsContent value="contact" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Contact Support</CardTitle>
+                    <CardTitle>{t('help.contactSupport')}</CardTitle>
                     <CardDescription>
-                      Need help? Send us a message and we'll get back to you as soon as possible.
+                      {t('help.contactSupportDesc')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -259,9 +259,9 @@ export default function HelpPage() {
                             name="name"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Name</FormLabel>
+                                <FormLabel>{t('help.form.name')}</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Your name" {...field} />
+                                  <Input placeholder={t('help.form.namePlaceholder')} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -273,9 +273,9 @@ export default function HelpPage() {
                             name="email"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Email</FormLabel>
+                                <FormLabel>{t('help.form.email')}</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Your email address" {...field} />
+                                  <Input placeholder={t('help.form.emailPlaceholder')} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -288,9 +288,9 @@ export default function HelpPage() {
                           name="subject"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Subject</FormLabel>
+                              <FormLabel>{t('help.form.subject')}</FormLabel>
                               <FormControl>
-                                <Input placeholder="What is your question about?" {...field} />
+                                <Input placeholder={t('help.form.subjectPlaceholder')} {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -302,10 +302,10 @@ export default function HelpPage() {
                           name="message"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Message</FormLabel>
+                              <FormLabel>{t('help.form.message')}</FormLabel>
                               <FormControl>
                                 <Textarea 
-                                  placeholder="Please describe your issue or question in detail..."
+                                  placeholder={t('help.form.messagePlaceholder')}
                                   className="min-h-[150px]"
                                   {...field}
                                 />
@@ -318,7 +318,7 @@ export default function HelpPage() {
                         <div className="flex justify-end">
                           <Button type="submit" className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            Send Message
+                            {t('help.form.sendMessage')}
                           </Button>
                         </div>
                       </form>

@@ -187,5 +187,72 @@
     "dark": "Sombre",
     "system": "Système",
     "chooseYourPreferredLanguage": "Choisissez votre langue préférée"
+  },
+  "help": {
+    "title": "Aide & Support",
+    "subtitle": "Obtenez de l'aide pour utiliser le système de gestion de réparation Onvaria",
+    "faq": "FAQ",
+    "userGuides": "Guides d'utilisation",
+    "contactSupport": "Contacter le support",
+    "frequentlyAskedQuestions": "Questions fréquemment posées",
+    "findAnswers": "Trouvez des réponses aux questions courantes sur l'utilisation d'Onvaria",
+    "searchQuestions": "Rechercher des questions...",
+    "noMatchingQuestions": "Aucune question correspondante trouvée.",
+    "tryDifferentSearch": "Essayez un terme de recherche différent ou contactez le support pour obtenir de l'aide.",
+    "guides": "Guides",
+    "guidesDescription": "Guides complets pour vous aider à tirer le meilleur parti d'Onvaria",
+    "gettingStarted": "Commencer",
+    "gettingStartedDesc": "Apprenez les bases de la configuration et de l'utilisation d'Onvaria pour votre entreprise de réparation.",
+    "ticketManagement": "Gestion des tickets",
+    "ticketManagementDesc": "Maîtrisez le cycle de vie complet du ticket, de la création à l'achèvement.",
+    "clientManagement": "Gestion des clients",
+    "clientManagementDesc": "Apprenez à gérer les informations client de manière efficace et efficiente.",
+    "invoicingPayments": "Facturation & Paiements",
+    "invoicingPaymentsDesc": "Comprenez comment créer des factures et traiter les paiements en toute simplicité.",
+    "viewGuide": "Voir le guide",
+    "contactDesc": "Besoin d'aide ? Envoyez-nous un message et nous vous répondrons dès que possible.",
+    "yourName": "Votre nom",
+    "yourEmail": "Votre adresse e-mail",
+    "subject": "Sujet",
+    "subjectPlaceholder": "Sur quoi porte votre question ?",
+    "message": "Message",
+    "messagePlaceholder": "Veuillez décrire votre problème ou question en détail...",
+    "sendMessage": "Envoyer le message",
+    "supportRequestSubmitted": "Demande de support envoyée",
+    "supportResponseMessage": "Nous vous répondrons dès que possible.",
+    "faqItems": {
+      "createTicket": {
+        "question": "Comment créer un nouveau ticket de réparation ?",
+        "answer": "Pour créer un nouveau ticket de réparation, naviguez vers la page Tickets et cliquez sur le bouton 'Nouveau Ticket' dans le coin supérieur droit. Remplissez les informations requises concernant le client, l'appareil et le problème, puis cliquez sur 'Créer Ticket'."
+      },
+      "addClient": {
+        "question": "Comment ajouter un nouveau client ?",
+        "answer": "Vous pouvez ajouter un nouveau client en allant sur la page Clients et en cliquant sur le bouton 'Ajouter Client'. Remplissez les détails du client tels que le nom, les coordonnées et l'adresse, puis cliquez sur 'Enregistrer'."
+      },
+      "generateInvoice": {
+        "question": "Comment générer une facture ?",
+        "answer": "Pour générer une facture, allez sur la page Factures et cliquez sur 'Nouvelle Facture'. Sélectionnez un client et un ticket (si applicable), ajoutez des lignes pour les services ou les pièces, et cliquez sur 'Créer Facture'. Vous pouvez ensuite imprimer ou envoyer la facture par e-mail au client."
+      },
+      "recordPayment": {
+        "question": "Comment enregistrer un paiement ?",
+        "answer": "Pour enregistrer un paiement, naviguez vers la page Paiements et cliquez sur 'Enregistrer Paiement'. Sélectionnez la facture qui est payée, entrez le montant et la méthode de paiement, puis cliquez sur 'Enregistrer'. Le paiement sera lié à la facture et au compte du client."
+      },
+      "updateStatus": {
+        "question": "Puis-je mettre à jour le statut d'un ticket ?",
+        "answer": "Oui, vous pouvez mettre à jour le statut d'un ticket en ouvrant les détails du ticket et en cliquant sur le bouton 'Mettre à jour le statut'. Sélectionnez le nouveau statut (par exemple, Diagnostiqué, En cours, Terminé) et ajoutez des notes pertinentes."
+      },
+      "assignTechnician": {
+        "question": "Comment assigner un technicien à un ticket ?",
+        "answer": "Ouvrez les détails du ticket et cliquez sur l'option 'Assigner un technicien'. Sélectionnez le technicien dans la liste déroulante et cliquez sur 'Assigner'. Le technicien sera notifié de l'affectation."
+      },
+      "trackProgress": {
+        "question": "Comment suivre la progression des réparations ?",
+        "answer": "Vous pouvez suivre la progression des réparations sur le Tableau de bord, qui affiche les tickets actifs et leur statut actuel. Pour des informations plus détaillées, ouvrez un ticket spécifique pour voir son historique complet et les mises à jour de statut."
+      },
+      "customizeSettings": {
+        "question": "Comment personnaliser mes paramètres de compte ?",
+        "answer": "Allez à la page Paramètres pour personnaliser vos préférences de compte. Vous pouvez mettre à jour vos informations de profil, modifier les paramètres de notification, ajuster les préférences de langue et modifier le thème."
+      }
+    }
   }
 }
