@@ -4,20 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, UserRoleEnum } from "@shared/schema";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { Wrench, Check, FileText, User, Bell, DollarSign } from "lucide-react";
+import { Wrench, Check, FileText, User, Bell, DollarSign, Store, Briefcase } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const loginSchema = insertUserSchema.pick({
   username: true,
   password: true,
 });
 
-const registerSchema = insertUserSchema;
+const registerSchema = insertUserSchema.extend({
+  role: z.enum(["ADMIN", "SHOP_OWNER", "TECHNICIAN", "RECEPTIONIST", "CUSTOMER"])
+});
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
@@ -39,12 +43,16 @@ export default function AuthPage() {
     },
   });
 
+  // Initialize translation
+  const { t } = useTranslation();
+  
   // Register form
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       password: "",
+      role: "TECHNICIAN",
     },
   });
 
@@ -75,26 +83,26 @@ export default function AuthPage() {
 
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="login">{t('auth.login', 'Login')}</TabsTrigger>
+              <TabsTrigger value="register">{t('auth.register', 'Register')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <Card>
                 <CardHeader>
-                  <CardTitle>Login to your account</CardTitle>
+                  <CardTitle>{t('auth.loginToAccount', 'Login to your account')}</CardTitle>
                   <CardDescription>
-                    Enter your credentials to access your account
+                    {t('auth.enterCredentials', 'Enter your credentials to access your account')}
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-username">Username</Label>
+                      <Label htmlFor="login-username">{t('auth.username', 'Username')}</Label>
                       <Input
                         id="login-username"
                         type="text"
-                        placeholder="Enter your username"
+                        placeholder={t('auth.enterUsername', 'Enter your username')}
                         {...loginForm.register("username")}
                       />
                       {loginForm.formState.errors.username && (
@@ -104,11 +112,11 @@ export default function AuthPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="login-password">Password</Label>
+                      <Label htmlFor="login-password">{t('auth.password', 'Password')}</Label>
                       <Input
                         id="login-password"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder={t('auth.enterPassword', 'Enter your password')}
                         {...loginForm.register("password")}
                       />
                       {loginForm.formState.errors.password && (
@@ -124,7 +132,7 @@ export default function AuthPage() {
                       className="w-full"
                       disabled={loginMutation.isPending || isLoading}
                     >
-                      {loginMutation.isPending ? "Logging in..." : "Login"}
+                      {loginMutation.isPending ? t('auth.loggingIn', 'Logging in...') : t('auth.login', 'Login')}
                     </Button>
                   </CardFooter>
                 </form>
@@ -134,19 +142,19 @@ export default function AuthPage() {
             <TabsContent value="register">
               <Card>
                 <CardHeader>
-                  <CardTitle>Create a new account</CardTitle>
+                  <CardTitle>{t('auth.createAccount', 'Create a new account')}</CardTitle>
                   <CardDescription>
-                    Register to start managing your repair business
+                    {t('auth.registerDescription', 'Register to start managing your repair business')}
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="register-username">Username</Label>
+                      <Label htmlFor="register-username">{t('auth.username', 'Username')}</Label>
                       <Input
                         id="register-username"
                         type="text"
-                        placeholder="Choose a username"
+                        placeholder={t('auth.chooseUsername', 'Choose a username')}
                         {...registerForm.register("username")}
                       />
                       {registerForm.formState.errors.username && (
@@ -156,16 +164,58 @@ export default function AuthPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-password">Password</Label>
+                      <Label htmlFor="register-password">{t('auth.password', 'Password')}</Label>
                       <Input
                         id="register-password"
                         type="password"
-                        placeholder="Choose a password"
+                        placeholder={t('auth.choosePassword', 'Choose a password')}
                         {...registerForm.register("password")}
                       />
                       {registerForm.formState.errors.password && (
                         <p className="text-sm text-red-500">
                           {registerForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label>{t('auth.selectRole', 'Select your role')}</Label>
+                      <RadioGroup defaultValue="TECHNICIAN" {...registerForm.register("role")}>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="SHOP_OWNER" id="role-shop-owner" />
+                          <Label htmlFor="role-shop-owner" className="flex items-center">
+                            <Store className="mr-2 h-4 w-4" />
+                            {t('auth.shopOwner', 'Shop Owner')}
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="TECHNICIAN" id="role-technician" />
+                          <Label htmlFor="role-technician" className="flex items-center">
+                            <Wrench className="mr-2 h-4 w-4" />
+                            {t('auth.technician', 'Technician')}
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="RECEPTIONIST" id="role-receptionist" />
+                          <Label htmlFor="role-receptionist" className="flex items-center">
+                            <Bell className="mr-2 h-4 w-4" />
+                            {t('auth.receptionist', 'Receptionist')}
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="CUSTOMER" id="role-customer" />
+                          <Label htmlFor="role-customer" className="flex items-center">
+                            <User className="mr-2 h-4 w-4" />
+                            {t('auth.customer', 'Customer')}
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                      {registerForm.formState.errors.role && (
+                        <p className="text-sm text-red-500">
+                          {registerForm.formState.errors.role.message}
                         </p>
                       )}
                     </div>
@@ -176,7 +226,7 @@ export default function AuthPage() {
                       className="w-full"
                       disabled={registerMutation.isPending || isLoading}
                     >
-                      {registerMutation.isPending ? "Registering..." : "Register"}
+                      {registerMutation.isPending ? t('auth.registering', 'Registering...') : t('auth.register', 'Register')}
                     </Button>
                   </CardFooter>
                 </form>
@@ -190,11 +240,10 @@ export default function AuthPage() {
       <div className="flex-1 bg-primary p-8 flex flex-col justify-center text-white hidden sm:block">
         <div className="max-w-md mx-auto">
           <h1 className="text-4xl font-bold mb-6">
-            Modern Repair Management
+            {t('auth.heroTitle', 'Modern Repair Management')}
           </h1>
           <p className="text-lg mb-8">
-            Onvaria streamlines your repair business with comprehensive ticket
-            management, invoicing, payment processing, and client communications.
+            {t('auth.heroSubtitle', 'Onvaria streamlines your repair business with comprehensive ticket management, invoicing, payment processing, and client communications.')}
           </p>
           <div className="space-y-4">
             <div className="flex items-start">
@@ -202,9 +251,9 @@ export default function AuthPage() {
                 <Check className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-medium">Ticket Tracking</h3>
+                <h3 className="font-medium">{t('auth.featureTickets', 'Ticket Tracking')}</h3>
                 <p className="text-sm opacity-80">
-                  Manage your repair tickets from receipt to completion
+                  {t('auth.featureTicketsDesc', 'Manage your repair tickets from receipt to completion')}
                 </p>
               </div>
             </div>
@@ -213,9 +262,9 @@ export default function AuthPage() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-medium">Invoice Generation</h3>
+                <h3 className="font-medium">{t('auth.featureInvoices', 'Invoice Generation')}</h3>
                 <p className="text-sm opacity-80">
-                  Create professional invoices and quotes for your clients
+                  {t('auth.featureInvoicesDesc', 'Create professional invoices and quotes for your clients')}
                 </p>
               </div>
             </div>
@@ -224,9 +273,9 @@ export default function AuthPage() {
                 <DollarSign className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-medium">Payment Processing</h3>
+                <h3 className="font-medium">{t('auth.featurePayments', 'Payment Processing')}</h3>
                 <p className="text-sm opacity-80">
-                  Accept payments online or in-shop with ease
+                  {t('auth.featurePaymentsDesc', 'Accept payments online or in-shop with ease')}
                 </p>
               </div>
             </div>
@@ -235,9 +284,9 @@ export default function AuthPage() {
                 <Bell className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-medium">Client Notifications</h3>
+                <h3 className="font-medium">{t('auth.featureNotifications', 'Client Notifications')}</h3>
                 <p className="text-sm opacity-80">
-                  Keep your clients informed at every step of the repair process
+                  {t('auth.featureNotificationsDesc', 'Keep your clients informed at every step of the repair process')}
                 </p>
               </div>
             </div>
