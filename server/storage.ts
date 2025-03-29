@@ -1,8 +1,13 @@
 import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification, ticketComments, TicketComment, InsertTicketComment } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { eq, and, desc, count, sql, gt, gte, ne } from "drizzle-orm";
+import { pool } from "./db";
 
 const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 // Defines all the storage operations needed by the application
 export interface IStorage {
@@ -765,4 +770,302 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  public sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
+  }
+  
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+  
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+  
+  // Ticket methods
+  async getAllTickets(): Promise<Ticket[]> {
+    return await db.select().from(tickets).orderBy(desc(tickets.createdAt));
+  }
+  
+  async getTicket(id: number): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
+  }
+  
+  async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
+    const statusHistory = [{
+      status: insertTicket.status || "RECEIVED",
+      timestamp: new Date().toISOString(),
+      note: "Ticket created"
+    }];
+    
+    // Insert the ticket
+    const [ticket] = await db.insert(tickets)
+      .values({
+        ...insertTicket,
+        statusHistory
+      })
+      .returning();
+    
+    // Update client's ticket count
+    await db.update(clients)
+      .set({
+        ticketCount: sql`${clients.ticketCount} + 1`
+      })
+      .where(eq(clients.id, insertTicket.clientId));
+    
+    return ticket;
+  }
+  
+  async updateTicket(id: number, ticketUpdate: Partial<InsertTicket>): Promise<Ticket | undefined> {
+    const [existingTicket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    if (!existingTicket) {
+      return undefined;
+    }
+    
+    // If status is updated, add to history
+    const statusHistory = [...existingTicket.statusHistory];
+    if (ticketUpdate.status && ticketUpdate.status !== existingTicket.status) {
+      statusHistory.push({
+        status: ticketUpdate.status,
+        timestamp: new Date().toISOString(),
+        note: `Status changed from ${existingTicket.status} to ${ticketUpdate.status}`
+      });
+    }
+    
+    // Update the ticket
+    const [updatedTicket] = await db.update(tickets)
+      .set({
+        ...ticketUpdate,
+        updatedAt: new Date(),
+        statusHistory
+      })
+      .where(eq(tickets.id, id))
+      .returning();
+    
+    return updatedTicket;
+  }
+  
+  async deleteTicket(id: number): Promise<boolean> {
+    const result = await db.delete(tickets).where(eq(tickets.id, id));
+    return !!result;
+  }
+  
+  async countActiveTickets(): Promise<number> {
+    const [result] = await db.select({
+      count: count()
+    })
+    .from(tickets)
+    .where(ne(tickets.status, "COMPLETED"));
+    
+    return result?.count || 0;
+  }
+  
+  async countUrgentTickets(): Promise<number> {
+    const [result] = await db.select({
+      count: count()
+    })
+    .from(tickets)
+    .where(and(
+      eq(tickets.priority, "urgent"),
+      ne(tickets.status, "COMPLETED")
+    ));
+    
+    return result?.count || 0;
+  }
+  
+  // Ticket comments methods
+  async getTicketComments(ticketId: number): Promise<TicketComment[]> {
+    return await db.select()
+      .from(ticketComments)
+      .where(eq(ticketComments.ticketId, ticketId))
+      .orderBy(ticketComments.createdAt);
+  }
+  
+  async createTicketComment(comment: InsertTicketComment): Promise<TicketComment> {
+    const [newComment] = await db.insert(ticketComments)
+      .values(comment)
+      .returning();
+    
+    return newComment;
+  }
+  
+  // Client methods
+  async getAllClients(): Promise<Client[]> {
+    return await db.select().from(clients).orderBy(clients.name);
+  }
+  
+  async getClient(id: number): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client;
+  }
+  
+  async createClient(insertClient: InsertClient): Promise<Client> {
+    const [client] = await db.insert(clients)
+      .values(insertClient)
+      .returning();
+    
+    return client;
+  }
+  
+  async updateClient(id: number, clientUpdate: Partial<InsertClient>): Promise<Client | undefined> {
+    const [updatedClient] = await db.update(clients)
+      .set({
+        ...clientUpdate,
+        updatedAt: new Date()
+      })
+      .where(eq(clients.id, id))
+      .returning();
+    
+    return updatedClient;
+  }
+  
+  async deleteClient(id: number): Promise<boolean> {
+    const result = await db.delete(clients).where(eq(clients.id, id));
+    return !!result;
+  }
+  
+  // Invoice methods
+  async getAllInvoices(): Promise<Invoice[]> {
+    return await db.select().from(invoices).orderBy(desc(invoices.date));
+  }
+  
+  async getInvoice(id: number): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    return invoice;
+  }
+  
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    const [invoice] = await db.insert(invoices)
+      .values(insertInvoice)
+      .returning();
+    
+    return invoice;
+  }
+  
+  async updateInvoice(id: number, invoiceUpdate: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    const [updatedInvoice] = await db.update(invoices)
+      .set({
+        ...invoiceUpdate,
+        updatedAt: new Date()
+      })
+      .where(eq(invoices.id, id))
+      .returning();
+    
+    return updatedInvoice;
+  }
+  
+  async deleteInvoice(id: number): Promise<boolean> {
+    const result = await db.delete(invoices).where(eq(invoices.id, id));
+    return !!result;
+  }
+  
+  // Payment methods
+  async getAllPayments(): Promise<Payment[]> {
+    return await db.select().from(payments).orderBy(desc(payments.date));
+  }
+  
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+  
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const [payment] = await db.insert(payments)
+      .values(insertPayment)
+      .returning();
+    
+    // Update invoice status if payment is created
+    if (insertPayment.status === "PAID") {
+      await db.update(invoices)
+        .set({ status: "PAID" })
+        .where(eq(invoices.id, insertPayment.invoiceId));
+    }
+    
+    return payment;
+  }
+  
+  async getMonthlyRevenue(): Promise<number> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const [result] = await db.select({
+      sum: sql<number>`SUM(${payments.amount})`
+    })
+    .from(payments)
+    .where(gte(payments.date, startOfMonth));
+    
+    return result?.sum || 0;
+  }
+  
+  // Notification methods
+  async getNotifications(userId: number | undefined): Promise<Notification[]> {
+    return await db.select()
+      .from(notifications)
+      .where(userId ? eq(notifications.userId, userId) : sql`TRUE`)
+      .orderBy(desc(notifications.createdAt));
+  }
+  
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications)
+      .values(insertNotification)
+      .returning();
+    
+    return notification;
+  }
+  
+  async markAllNotificationsAsRead(userId: number | undefined): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(userId ? eq(notifications.userId, userId) : sql`TRUE`);
+  }
+  
+  // Analytics methods
+  async getAvgResolutionTime(): Promise<string> {
+    // Calculate average time between ticket creation and completion
+    const completedTickets = await db.select({
+      createdAt: tickets.createdAt,
+      updatedAt: tickets.updatedAt
+    })
+    .from(tickets)
+    .where(eq(tickets.status, "COMPLETED"));
+    
+    if (completedTickets.length === 0) {
+      return "N/A";
+    }
+    
+    let totalHours = 0;
+    for (const ticket of completedTickets) {
+      const createdTime = new Date(ticket.createdAt).getTime();
+      const completedTime = new Date(ticket.updatedAt).getTime();
+      const hours = (completedTime - createdTime) / (1000 * 60 * 60);
+      totalHours += hours;
+    }
+    
+    const avgHours = Math.round(totalHours / completedTickets.length);
+    const days = Math.floor(avgHours / 24);
+    const remainingHours = Math.round(avgHours % 24);
+    
+    return days > 0 
+      ? `${days} ${days === 1 ? 'day' : 'days'} ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`
+      : `${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
+  }
+}
+
+// Use the DatabaseStorage implementation instead of MemStorage
+export const storage = new DatabaseStorage();

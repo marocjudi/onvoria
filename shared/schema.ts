@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   phone: text("phone"),
   role: text("role").default("user"),
+  isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -22,6 +23,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   firstName: true,
   lastName: true,
   phone: true,
+  isAdmin: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -51,6 +53,7 @@ export const tickets = pgTable("tickets", {
   status: TicketStatusEnum("status").notNull().default("RECEIVED"),
   dueDate: timestamp("due_date").notNull(),
   technicianId: integer("technician_id"),
+  marketingRating: integer("marketing_rating").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   statusHistory: json("status_history").$type<Array<{status: string, timestamp: string, note?: string}>>().default([]),
@@ -62,6 +65,7 @@ export const insertTicketSchema = createInsertSchema(tickets).omit({
   createdAt: true,
   updatedAt: true,
   statusHistory: true,
+  attachments: true,
 });
 
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
