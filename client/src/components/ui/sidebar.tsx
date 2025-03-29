@@ -105,9 +105,9 @@ export function Sidebar({ className }: SidebarProps) {
               {group.items.map((item) => (
                 <li key={item.name} className="mb-1">
                   <Link href={item.href}>
-                    <a
+                    <div
                       className={cn(
-                        "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+                        "flex items-center px-4 py-2 text-sm font-medium rounded-md cursor-pointer",
                         item.current
                           ? "text-white bg-primary"
                           : "text-neutral-700 hover:bg-neutral-100"
@@ -115,7 +115,7 @@ export function Sidebar({ className }: SidebarProps) {
                     >
                       <item.icon className="h-5 w-5 mr-3" />
                       {item.name}
-                    </a>
+                    </div>
                   </Link>
                 </li>
               ))}
