@@ -314,6 +314,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Stripe webhook event received");
       res.sendStatus(200);
     });
+    
+    // Get available subscription plans/prices
+    app.get("/api/subscription-plans", isAuthenticated, async (req, res) => {
+      try {
+        const plans = [
+          {
+            id: "BASIC",
+            name: "Basic Plan",
+            description: "For individual technicians and small repair shops",
+            price: 9.99,
+            priceId: process.env.STRIPE_PRICE_ID_BASIC,
+            features: [
+              "Manage up to 50 tickets",
+              "Basic client management",
+              "Simple invoicing",
+              "Email notifications"
+            ]
+          },
+          {
+            id: "PROFESSIONAL",
+            name: "Professional Plan",
+            description: "For established repair shops with multiple technicians",
+            price: 29.99,
+            priceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL,
+            features: [
+              "Unlimited tickets",
+              "Advanced client management",
+              "Full invoicing and payments",
+              "Email, SMS notifications",
+              "Detailed analytics"
+            ]
+          },
+          {
+            id: "ENTERPRISE",
+            name: "Enterprise Plan",
+            description: "For large repair businesses with multiple locations",
+            price: 99.99,
+            priceId: process.env.STRIPE_PRICE_ID_ENTERPRISE,
+            features: [
+              "Everything in Professional",
+              "Multi-store management",
+              "Advanced analytics and reporting",
+              "Priority support",
+              "Custom notifications"
+            ]
+          }
+        ];
+        
+        res.json(plans);
+      } catch (err: any) {
+        res.status(500).json({ message: err.message });
+      }
+    });
+    
+    // Create or retrieve a subscription for the user
+    app.post("/api/create-subscription", isAuthenticated, async (req, res) => {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      try {
+        const { planId } = req.body;
+        let priceId;
+        
+        // Determine which price ID to use based on the plan
+        switch (planId) {
+          case "BASIC":
+            priceId = process.env.STRIPE_PRICE_ID_BASIC;
+            break;
+          case "PROFESSIONAL":
+            priceId = process.env.STRIPE_PRICE_ID_PROFESSIONAL;
+            break;
+          case "ENTERPRISE":
+            priceId = process.env.STRIPE_PRICE_ID_ENTERPRISE;
+            break;
+          default:
+            return res.status(400).json({ message: "Invalid plan ID" });
+        }
+        
+        if (!priceId) {
+          return res.status(400).json({ message: "Price ID not configured for this plan" });
+        }
+        
+        let user = req.user;
+        
+        // If user already has a subscription, return it
+        if (user.stripeSubscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          
+          return res.json({
+            subscriptionId: subscription.id,
+            clientSecret: subscription.latest_invoice?.payment_intent?.client_secret || null,
+            status: subscription.status
+          });
+        }
+        
+        // Create a new customer if one doesn't exist
+        if (!user.stripeCustomerId) {
+          const customer = await stripe.customers.create({
+            email: user.email || undefined,
+            name: user.username,
+            metadata: {
+              userId: user.id.toString()
+            }
+          });
+          
+          // Update user with new Stripe customer ID
+          user = await storage.updateUserStripeInfo(user.id, { 
+            stripeCustomerId: customer.id,
+            stripeSubscriptionId: "" 
+          }) || user;
+        }
+        
+        // Create a subscription
+        const subscription = await stripe.subscriptions.create({
+          customer: user.stripeCustomerId!,
+          items: [{ price: priceId }],
+          payment_behavior: 'default_incomplete',
+          expand: ['latest_invoice.payment_intent'],
+          metadata: {
+            userId: user.id.toString(),
+            planId: planId
+          }
+        });
+        
+        // Update user with subscription ID and tier
+        await storage.updateUserStripeInfo(user.id, {
+          stripeCustomerId: user.stripeCustomerId!,
+          stripeSubscriptionId: subscription.id
+        });
+        
+        await storage.updateSubscriptionTier(user.id, planId);
+        await storage.updateSubscriptionStatus(user.id, subscription.status);
+        
+        res.json({
+          subscriptionId: subscription.id,
+          clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret || null,
+          status: subscription.status
+        });
+        
+      } catch (err: any) {
+        console.error("Subscription creation error:", err);
+        res.status(500).json({ message: err.message });
+      }
+    });
+    
+    // Cancel a subscription
+    app.post("/api/cancel-subscription", isAuthenticated, async (req, res) => {
+      if (!req.user || !req.user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription" });
+      }
+      
+      try {
+        const subscription = await stripe.subscriptions.update(
+          req.user.stripeSubscriptionId,
+          { cancel_at_period_end: true }
+        );
+        
+        await storage.updateSubscriptionStatus(req.user.id, subscription.status);
+        
+        res.json({
+          message: "Subscription will be canceled at the end of the billing period",
+          cancelAt: new Date(subscription.cancel_at * 1000)
+        });
+      } catch (err: any) {
+        console.error("Subscription cancellation error:", err);
+        res.status(500).json({ message: err.message });
+      }
+    });
+    
+    // Update a subscription to a different plan
+    app.post("/api/update-subscription", isAuthenticated, async (req, res) => {
+      if (!req.user || !req.user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription" });
+      }
+      
+      try {
+        const { planId } = req.body;
+        let priceId;
+        
+        // Determine which price ID to use based on the plan
+        switch (planId) {
+          case "BASIC":
+            priceId = process.env.STRIPE_PRICE_ID_BASIC;
+            break;
+          case "PROFESSIONAL":
+            priceId = process.env.STRIPE_PRICE_ID_PROFESSIONAL;
+            break;
+          case "ENTERPRISE":
+            priceId = process.env.STRIPE_PRICE_ID_ENTERPRISE;
+            break;
+          default:
+            return res.status(400).json({ message: "Invalid plan ID" });
+        }
+        
+        if (!priceId) {
+          return res.status(400).json({ message: "Price ID not configured for this plan" });
+        }
+        
+        // Get the subscription first to identify the item ID
+        const currentSubscription = await stripe.subscriptions.retrieve(req.user.stripeSubscriptionId);
+        
+        // Get the subscription item ID (usually there's just one item)
+        const subscriptionItemId = currentSubscription.items.data[0].id;
+        
+        // Update the subscription with the new price
+        const subscription = await stripe.subscriptions.update(
+          req.user.stripeSubscriptionId,
+          {
+            items: [{
+              id: subscriptionItemId,
+              price: priceId
+            }],
+            metadata: {
+              planId: planId
+            }
+          }
+        );
+        
+        // Update user's subscription tier in the database
+        await storage.updateSubscriptionTier(req.user.id, planId);
+        
+        res.json({
+          message: "Subscription updated successfully",
+          subscriptionId: subscription.id,
+          status: subscription.status
+        });
+      } catch (err: any) {
+        console.error("Subscription update error:", err);
+        res.status(500).json({ message: err.message });
+      }
+    });
   }
 
   // Ticket comments routes

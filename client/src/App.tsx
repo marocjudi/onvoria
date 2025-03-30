@@ -12,6 +12,7 @@ import ClientsPage from "@/pages/clients-page";
 import SettingsPage from "@/pages/settings-page";
 import CheckoutPage from "@/pages/checkout-page";
 import HelpPage from "@/pages/help-page";
+import SubscriptionPage from "@/pages/subscription-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 
@@ -27,6 +28,7 @@ function Router() {
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/help" component={HelpPage} />
       <ProtectedRoute path="/checkout/:invoiceId" component={CheckoutPage} />
+      <ProtectedRoute path="/subscription" component={SubscriptionPage} />
       <Route component={NotFound} />
     </Switch>
   );

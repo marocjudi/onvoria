@@ -6,6 +6,7 @@
     "invoices": "Facturas",
     "payments": "Pagos",
     "settings": "Configuración",
+    "subscription": "Suscripción",
     "help": "Ayuda & Soporte",
     "logout": "Cerrar Sesión",
     "save": "Guardar",
@@ -17,7 +18,9 @@
     "filter": "Filtrar",
     "loading": "Cargando...",
     "noData": "No hay datos disponibles",
-    "welcome": "Bienvenido"
+    "welcome": "Bienvenido",
+    "creating": "Creando...",
+    "processing": "Procesando..."
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -187,5 +190,36 @@
     "dark": "Oscuro",
     "system": "Sistema",
     "chooseYourPreferredLanguage": "Elija su idioma preferido"
+  },
+  "subscription": {
+    "title": "Planes de Suscripción",
+    "subtitle": "Elija el plan que mejor se adapte a sus necesidades",
+    "current_subscription": "Suscripción Actual",
+    "current_tier": "Nivel Actual",
+    "current_plan": "Plan Actual",
+    "change_plan": "Cambiar Plan",
+    "select": "Seleccionar",
+    "selected": "Seleccionado",
+    "subscribe_now": "Suscribirse Ahora",
+    "cancel": "Cancelar Suscripción",
+    "renews_on": "Se renueva el",
+    "per_month": "por mes",
+    "current": "Actual",
+    "processing": "Procesando...",
+    "complete_payment": "Completar Pago",
+    "enter_payment_details": "Introduzca sus detalles de pago para completar la suscripción",
+    "complete_subscription": "Completar Suscripción",
+    "payment_failed": "Pago Fallido",
+    "payment_success": "Pago Exitoso",
+    "payment_error": "Error de Pago",
+    "subscription_active": "Su suscripción está ahora activa",
+    "success": "Suscripción Exitosa",
+    "failed": "Suscripción Fallida",
+    "canceled": "Suscripción Cancelada",
+    "updated": "Suscripción Actualizada",
+    "cancel_success": "Su suscripción ha sido cancelada con éxito",
+    "cancel_failed": "Error al cancelar la suscripción",
+    "update_success": "Su suscripción ha sido actualizada con éxito",
+    "update_failed": "Error al actualizar la suscripción"
   }
 }

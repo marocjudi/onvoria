@@ -62,6 +62,12 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  
+  // Subscription operations
+  updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | undefined>;
+  updateSubscriptionStatus(userId: number, status: string, currentPeriodEnd?: Date): Promise<User | undefined>;
+  updateSubscriptionTier(userId: number, tier: string): Promise<User | undefined>;
   
   // Session store
   sessionStore: session.Store;
@@ -465,6 +471,68 @@ export class MemStorage implements IStorage {
     this.users.set(id, user);
     return user;
   }
+  
+  async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) {
+      return undefined;
+    }
+    
+    const updatedUser: User = {
+      ...existingUser,
+      ...userUpdate,
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | undefined> {
+    const existingUser = this.users.get(userId);
+    if (!existingUser) {
+      return undefined;
+    }
+    
+    const updatedUser: User = {
+      ...existingUser,
+      stripeCustomerId: stripeInfo.stripeCustomerId,
+      stripeSubscriptionId: stripeInfo.stripeSubscriptionId,
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateSubscriptionStatus(userId: number, status: string, currentPeriodEnd?: Date): Promise<User | undefined> {
+    const existingUser = this.users.get(userId);
+    if (!existingUser) {
+      return undefined;
+    }
+    
+    const updatedUser: User = {
+      ...existingUser,
+      subscriptionStatus: status as any, // Type cast to match enum
+      ...(currentPeriodEnd && { subscriptionCurrentPeriodEnd: currentPeriodEnd }),
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateSubscriptionTier(userId: number, tier: string): Promise<User | undefined> {
+    const existingUser = this.users.get(userId);
+    if (!existingUser) {
+      return undefined;
+    }
+    
+    const updatedUser: User = {
+      ...existingUser,
+      subscriptionTier: tier as any, // Type cast to match enum
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
 
   // Ticket methods
   async getAllTickets(): Promise<Ticket[]> {
@@ -853,11 +921,83 @@ export class DatabaseStorage implements IStorage {
       lastName: insertUser.lastName || null,
       phone: insertUser.phone || null,
       role: insertUser.role || "TECHNICIAN",
-      isAdmin: insertUser.isAdmin !== undefined ? insertUser.isAdmin : false
+      isAdmin: insertUser.isAdmin !== undefined ? insertUser.isAdmin : false,
+      // Initialize subscription fields with null values
+      stripeCustomerId: insertUser.stripeCustomerId || null,
+      stripeSubscriptionId: insertUser.stripeSubscriptionId || null,
+      subscriptionTier: insertUser.subscriptionTier || "NONE",
+      subscriptionStatus: insertUser.subscriptionStatus || null,
+      subscriptionCurrentPeriodEnd: insertUser.subscriptionCurrentPeriodEnd || null,
+      shopId: insertUser.shopId || null
     };
     
     const [user] = await db.insert(users).values(userData).returning();
     return user;
+  }
+  
+  async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    // Ensure optional fields are not undefined
+    const userData = {
+      ...userUpdate,
+      email: userUpdate.email === undefined ? undefined : userUpdate.email || null,
+      firstName: userUpdate.firstName === undefined ? undefined : userUpdate.firstName || null,
+      lastName: userUpdate.lastName === undefined ? undefined : userUpdate.lastName || null,
+      phone: userUpdate.phone === undefined ? undefined : userUpdate.phone || null,
+      role: userUpdate.role === undefined ? undefined : userUpdate.role || null,
+      stripeCustomerId: userUpdate.stripeCustomerId === undefined ? undefined : userUpdate.stripeCustomerId || null,
+      stripeSubscriptionId: userUpdate.stripeSubscriptionId === undefined ? undefined : userUpdate.stripeSubscriptionId || null,
+      subscriptionTier: userUpdate.subscriptionTier === undefined ? undefined : userUpdate.subscriptionTier || null,
+      subscriptionStatus: userUpdate.subscriptionStatus === undefined ? undefined : userUpdate.subscriptionStatus || null,
+      subscriptionCurrentPeriodEnd: userUpdate.subscriptionCurrentPeriodEnd === undefined ? undefined : userUpdate.subscriptionCurrentPeriodEnd || null,
+      shopId: userUpdate.shopId === undefined ? undefined : userUpdate.shopId || null
+    };
+    
+    const [updatedUser] = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+      
+    return updatedUser;
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({
+        stripeCustomerId: stripeInfo.stripeCustomerId || null,
+        stripeSubscriptionId: stripeInfo.stripeSubscriptionId || null
+      })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    return updatedUser;
+  }
+  
+  async updateSubscriptionStatus(userId: number, status: string, currentPeriodEnd?: Date): Promise<User | undefined> {
+    const updateData: any = {
+      subscriptionStatus: status || null
+    };
+    
+    if (currentPeriodEnd) {
+      updateData.subscriptionCurrentPeriodEnd = currentPeriodEnd;
+    }
+    
+    const [updatedUser] = await db.update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+      
+    return updatedUser;
+  }
+  
+  async updateSubscriptionTier(userId: number, tier: string): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({
+        subscriptionTier: tier || null
+      })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    return updatedUser;
   }
   
   // Ticket methods

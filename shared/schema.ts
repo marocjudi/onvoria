@@ -5,6 +5,12 @@ import { z } from "zod";
 // User role enum
 export const UserRoleEnum = pgEnum("user_role", ["ADMIN", "SHOP_OWNER", "TECHNICIAN", "RECEPTIONIST", "CUSTOMER"]);
 
+// Subscription tier enum
+export const SubscriptionTierEnum = pgEnum("subscription_tier", ["NONE", "BASIC", "PROFESSIONAL", "ENTERPRISE"]);
+
+// Subscription status enum
+export const SubscriptionStatusEnum = pgEnum("subscription_status", ["ACTIVE", "PAST_DUE", "UNPAID", "CANCELED", "INCOMPLETE", "INCOMPLETE_EXPIRED", "TRIALING"]);
+
 // Users schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -17,6 +23,13 @@ export const users = pgTable("users", {
   role: UserRoleEnum("role").default("TECHNICIAN"),
   isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
+  // Subscription related fields
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionTier: SubscriptionTierEnum("subscription_tier").default("NONE"),
+  subscriptionStatus: SubscriptionStatusEnum("subscription_status"),
+  subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end"),
+  shopId: integer("shop_id"), // For linking technicians to a shop/store
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -28,6 +41,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phone: true,
   role: true,
   isAdmin: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  subscriptionTier: true,
+  subscriptionStatus: true,
+  subscriptionCurrentPeriodEnd: true,
+  shopId: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

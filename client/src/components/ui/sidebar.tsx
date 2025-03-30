@@ -10,6 +10,7 @@ import {
   HelpCircle,
   Wrench,
   LogOut,
+  CreditCard,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
@@ -68,6 +69,12 @@ export function Sidebar({ className }: SidebarProps) {
           href: "/settings",
           icon: Settings,
           current: location === "/settings",
+        },
+        {
+          name: t("common.subscription"),
+          href: "/subscription",
+          icon: CreditCard,
+          current: location === "/subscription",
         },
         {
           name: t("common.help"),
