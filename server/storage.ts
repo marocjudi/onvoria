@@ -845,7 +845,18 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    // Ensure optional fields are properly handled with null values instead of undefined
+    const userData = {
+      ...insertUser,
+      email: insertUser.email || null,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      phone: insertUser.phone || null,
+      role: insertUser.role || "TECHNICIAN",
+      isAdmin: insertUser.isAdmin !== undefined ? insertUser.isAdmin : false
+    };
+    
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
   
@@ -860,16 +871,21 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
-    const statusHistory = [{
-      status: insertTicket.status || "RECEIVED",
+    // Ensure status is defined
+    const status = insertTicket.status || "RECEIVED";
+    
+    // Initialize status history with proper typing
+    const statusHistory: Array<{status: string, timestamp: string, note?: string}> = [{
+      status,
       timestamp: new Date().toISOString(),
       note: "Ticket created"
     }];
     
-    // Insert the ticket
+    // Insert the ticket with properly specified fields
     const [ticket] = await db.insert(tickets)
       .values({
         ...insertTicket,
+        status, // Ensure status is defined
         statusHistory
       })
       .returning();
@@ -891,11 +907,13 @@ export class DatabaseStorage implements IStorage {
     }
     
     // If status is updated, add to history
-    const statusHistory = [...existingTicket.statusHistory];
+    const statusHistory: Array<{status: string, timestamp: string, note?: string}> = 
+      existingTicket.statusHistory ? [...existingTicket.statusHistory] : [];
+    
     if (ticketUpdate.status && ticketUpdate.status !== existingTicket.status) {
       statusHistory.push({
         status: ticketUpdate.status,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString(), 
         note: `Status changed from ${existingTicket.status} to ${ticketUpdate.status}`
       });
     }
@@ -968,8 +986,21 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createClient(insertClient: InsertClient): Promise<Client> {
+    // Ensure optional fields are properly handled with null values instead of undefined
+    const clientData = {
+      ...insertClient,
+      company: insertClient.company || null,
+      address: insertClient.address || null,
+      city: insertClient.city || null,
+      state: insertClient.state || null,
+      zipCode: insertClient.zipCode || null,
+      smsNotifications: insertClient.smsNotifications !== undefined ? insertClient.smsNotifications : false,
+      whatsappNotifications: insertClient.whatsappNotifications !== undefined ? insertClient.whatsappNotifications : false,
+      emailNotifications: insertClient.emailNotifications !== undefined ? insertClient.emailNotifications : true
+    };
+    
     const [client] = await db.insert(clients)
-      .values(insertClient)
+      .values(clientData)
       .returning();
     
     return client;
@@ -1003,8 +1034,20 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    // Ensure proper handling of nullable fields
+    const invoiceData = {
+      ...insertInvoice,
+      date: insertInvoice.date || new Date(),
+      status: insertInvoice.status || "PENDING",
+      total: insertInvoice.total || 0,
+      tax: insertInvoice.tax || 0,
+      subTotal: insertInvoice.subTotal || 0,
+      items: Array.isArray(insertInvoice.items) ? insertInvoice.items : [], 
+      notes: insertInvoice.notes || null
+    };
+    
     const [invoice] = await db.insert(invoices)
-      .values(insertInvoice)
+      .values(invoiceData)
       .returning();
     
     return invoice;
@@ -1038,15 +1081,24 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    // Ensure proper handling of nullable fields
+    const paymentData = {
+      ...insertPayment,
+      date: insertPayment.date || new Date(),
+      status: insertPayment.status || "PAID",
+      reference: insertPayment.reference || null,
+      description: insertPayment.description || null
+    };
+    
     const [payment] = await db.insert(payments)
-      .values(insertPayment)
+      .values(paymentData)
       .returning();
     
     // Update invoice status if payment is created
-    if (insertPayment.status === "PAID") {
+    if (paymentData.status === "PAID") {
       await db.update(invoices)
         .set({ status: "PAID" })
-        .where(eq(invoices.id, insertPayment.invoiceId));
+        .where(eq(invoices.id, paymentData.invoiceId));
     }
     
     return payment;
@@ -1075,8 +1127,18 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    // Ensure nullable fields are properly handled
+    const notificationData = {
+      ...insertNotification,
+      resourceId: insertNotification.resourceId || null,
+      resourceType: insertNotification.resourceType || null,
+      isRead: insertNotification.isRead !== undefined ? insertNotification.isRead : false,
+      actionLabel: insertNotification.actionLabel || null,
+      actionUrl: insertNotification.actionUrl || null
+    };
+    
     const [notification] = await db.insert(notifications)
-      .values(insertNotification)
+      .values(notificationData)
       .returning();
     
     return notification;
@@ -1100,8 +1162,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createNotificationTemplate(template: InsertNotificationTemplate): Promise<NotificationTemplate> {
+    // Ensure nullable fields are properly handled
+    const templateData = {
+      ...template,
+      isActive: template.isActive !== undefined ? template.isActive : true,
+    };
+    
     const [notificationTemplate] = await db.insert(notificationTemplates)
-      .values(template)
+      .values(templateData)
       .returning();
     
     return notificationTemplate;
@@ -1142,8 +1210,8 @@ export class DatabaseStorage implements IStorage {
     
     let totalHours = 0;
     for (const ticket of completedTickets) {
-      const createdTime = new Date(ticket.createdAt).getTime();
-      const completedTime = new Date(ticket.updatedAt).getTime();
+      const createdTime = new Date(ticket.createdAt || new Date()).getTime();
+      const completedTime = new Date(ticket.updatedAt || new Date()).getTime();
       const hours = (completedTime - createdTime) / (1000 * 60 * 60);
       totalHours += hours;
     }
