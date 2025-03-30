@@ -1,4 +1,4 @@
-import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification, ticketComments, TicketComment, InsertTicketComment, notificationTemplates, NotificationTemplate, InsertNotificationTemplate } from "@shared/schema";
+import { users, User, InsertUser, tickets, Ticket, InsertTicket, clients, Client, InsertClient, invoices, Invoice, InsertInvoice, payments, Payment, InsertPayment, notifications, Notification, InsertNotification, ticketComments, TicketComment, InsertTicketComment, notificationTemplates, NotificationTemplate, InsertNotificationTemplate, companyBranding, CompanyBranding, InsertCompanyBranding, invoiceTemplates, InvoiceTemplate, InsertInvoiceTemplate } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
@@ -120,7 +120,25 @@ export interface IStorage {
   getAvgResolutionTime(): Promise<string>;
 }
 
-export class MemStorage implements IStorage {
+// Define additional interface for Company Branding and Invoice Templates
+export interface IBrandingAndTemplates {
+  // Company branding operations
+  getCompanyBranding(userId: number): Promise<CompanyBranding | undefined>;
+  createCompanyBranding(branding: InsertCompanyBranding): Promise<CompanyBranding>;
+  updateCompanyBranding(id: number, branding: Partial<InsertCompanyBranding>): Promise<CompanyBranding | undefined>;
+  
+  // Invoice template operations
+  getInvoiceTemplates(userId: number): Promise<InvoiceTemplate[]>;
+  getInvoiceTemplate(id: number): Promise<InvoiceTemplate | undefined>;
+  createInvoiceTemplate(template: InsertInvoiceTemplate): Promise<InvoiceTemplate>;
+  updateInvoiceTemplate(id: number, template: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate | undefined>;
+  deleteInvoiceTemplate(id: number): Promise<boolean>;
+}
+
+// Combine the interfaces
+export interface IFullStorage extends IStorage, IBrandingAndTemplates {}
+
+export class MemStorage implements IFullStorage {
   private users: Map<number, User>;
   private tickets: Map<number, Ticket>;
   private clients: Map<number, Client>;
@@ -129,6 +147,8 @@ export class MemStorage implements IStorage {
   private notifications: Map<number, Notification>;
   private ticketComments: Map<number, TicketComment>;
   private notificationTemplates: Map<number, NotificationTemplate>;
+  private companyBranding: Map<number, CompanyBranding>;
+  private invoiceTemplates: Map<number, InvoiceTemplate>;
   public sessionStore: session.Store;
   
   private userIdCounter: number;
@@ -139,6 +159,8 @@ export class MemStorage implements IStorage {
   private notificationIdCounter: number;
   private commentIdCounter: number;
   private notificationTemplateIdCounter: number;
+  private brandingIdCounter: number;
+  private invoiceTemplateIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -149,6 +171,8 @@ export class MemStorage implements IStorage {
     this.notifications = new Map();
     this.ticketComments = new Map();
     this.notificationTemplates = new Map();
+    this.companyBranding = new Map();
+    this.invoiceTemplates = new Map();
     
     this.userIdCounter = 1;
     this.ticketIdCounter = 1;
@@ -158,6 +182,8 @@ export class MemStorage implements IStorage {
     this.notificationIdCounter = 1;
     this.commentIdCounter = 1;
     this.notificationTemplateIdCounter = 1;
+    this.brandingIdCounter = 1;
+    this.invoiceTemplateIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
@@ -889,9 +915,89 @@ export class MemStorage implements IStorage {
     
     return `${avgTimeDays.toFixed(1)} days`;
   }
+  
+  // Company branding methods
+  async getCompanyBranding(userId: number): Promise<CompanyBranding | undefined> {
+    return Array.from(this.companyBranding.values()).find(
+      (branding) => branding.userId === userId
+    );
+  }
+
+  async createCompanyBranding(branding: InsertCompanyBranding): Promise<CompanyBranding> {
+    const id = this.brandingIdCounter++;
+    const companyBranding: CompanyBranding = {
+      ...branding,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.companyBranding.set(id, companyBranding);
+    return companyBranding;
+  }
+
+  async updateCompanyBranding(id: number, brandingUpdate: Partial<InsertCompanyBranding>): Promise<CompanyBranding | undefined> {
+    const existingBranding = this.companyBranding.get(id);
+    if (!existingBranding) {
+      return undefined;
+    }
+    
+    const updatedBranding: CompanyBranding = {
+      ...existingBranding,
+      ...brandingUpdate,
+      updatedAt: new Date()
+    };
+    
+    this.companyBranding.set(id, updatedBranding);
+    return updatedBranding;
+  }
+
+  // Invoice template methods
+  async getInvoiceTemplates(userId: number): Promise<InvoiceTemplate[]> {
+    return Array.from(this.invoiceTemplates.values()).filter(
+      (template) => template.userId === userId
+    );
+  }
+
+  async getInvoiceTemplate(id: number): Promise<InvoiceTemplate | undefined> {
+    return this.invoiceTemplates.get(id);
+  }
+
+  async createInvoiceTemplate(template: InsertInvoiceTemplate): Promise<InvoiceTemplate> {
+    const id = this.invoiceTemplateIdCounter++;
+    const invoiceTemplate: InvoiceTemplate = {
+      ...template,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.invoiceTemplates.set(id, invoiceTemplate);
+    return invoiceTemplate;
+  }
+
+  async updateInvoiceTemplate(id: number, templateUpdate: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate | undefined> {
+    const existingTemplate = this.invoiceTemplates.get(id);
+    if (!existingTemplate) {
+      return undefined;
+    }
+    
+    const updatedTemplate: InvoiceTemplate = {
+      ...existingTemplate,
+      ...templateUpdate,
+      updatedAt: new Date()
+    };
+    
+    this.invoiceTemplates.set(id, updatedTemplate);
+    return updatedTemplate;
+  }
+
+  async deleteInvoiceTemplate(id: number): Promise<boolean> {
+    return this.invoiceTemplates.delete(id);
+  }
 }
 
-export class DatabaseStorage implements IStorage {
+export class DatabaseStorage implements IFullStorage {
   public sessionStore: session.Store;
 
   constructor() {
@@ -1364,6 +1470,126 @@ export class DatabaseStorage implements IStorage {
       ? `${days} ${days === 1 ? 'day' : 'days'} ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`
       : `${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
   }
+  
+  // Company branding methods
+  async getCompanyBranding(userId: number): Promise<CompanyBranding | undefined> {
+    const [branding] = await db.select()
+      .from(companyBranding)
+      .where(eq(companyBranding.userId, userId));
+    
+    return branding;
+  }
+
+  async createCompanyBranding(branding: InsertCompanyBranding): Promise<CompanyBranding> {
+    // Ensure nullable fields are properly handled
+    const brandingData = {
+      ...branding,
+      companyLogo: branding.companyLogo || null,
+      address: branding.address || null,
+      city: branding.city || null,
+      state: branding.state || null,
+      zipCode: branding.zipCode || null,
+      phone: branding.phone || null,
+      email: branding.email || null,
+      website: branding.website || null
+    };
+    
+    const [newBranding] = await db.insert(companyBranding)
+      .values(brandingData)
+      .returning();
+    
+    return newBranding;
+  }
+
+  async updateCompanyBranding(id: number, brandingUpdate: Partial<InsertCompanyBranding>): Promise<CompanyBranding | undefined> {
+    // Handle nullable fields properly
+    const brandingData: any = {
+      ...brandingUpdate,
+      updatedAt: new Date()
+    };
+    
+    // Ensure nullable fields are not set to undefined
+    if ('companyLogo' in brandingUpdate) brandingData.companyLogo = brandingUpdate.companyLogo || null;
+    if ('address' in brandingUpdate) brandingData.address = brandingUpdate.address || null;
+    if ('city' in brandingUpdate) brandingData.city = brandingUpdate.city || null;
+    if ('state' in brandingUpdate) brandingData.state = brandingUpdate.state || null;
+    if ('zipCode' in brandingUpdate) brandingData.zipCode = brandingUpdate.zipCode || null;
+    if ('phone' in brandingUpdate) brandingData.phone = brandingUpdate.phone || null;
+    if ('email' in brandingUpdate) brandingData.email = brandingUpdate.email || null;
+    if ('website' in brandingUpdate) brandingData.website = brandingUpdate.website || null;
+    
+    const [updatedBranding] = await db.update(companyBranding)
+      .set(brandingData)
+      .where(eq(companyBranding.id, id))
+      .returning();
+    
+    return updatedBranding;
+  }
+
+  // Invoice template methods
+  async getInvoiceTemplates(userId: number): Promise<InvoiceTemplate[]> {
+    return await db.select()
+      .from(invoiceTemplates)
+      .where(eq(invoiceTemplates.userId, userId))
+      .orderBy(invoiceTemplates.name);
+  }
+
+  async getInvoiceTemplate(id: number): Promise<InvoiceTemplate | undefined> {
+    const [template] = await db.select()
+      .from(invoiceTemplates)
+      .where(eq(invoiceTemplates.id, id));
+    
+    return template;
+  }
+
+  async createInvoiceTemplate(template: InsertInvoiceTemplate): Promise<InvoiceTemplate> {
+    // Ensure nullable fields are properly handled
+    const templateData = {
+      ...template,
+      type: template.type || "DEFAULT",
+      headerHtml: template.headerHtml || null,
+      footerHtml: template.footerHtml || null,
+      itemsTableHtml: template.itemsTableHtml || null,
+      css: template.css || null,
+      isDefault: template.isDefault !== undefined ? template.isDefault : false
+    };
+    
+    const [newTemplate] = await db.insert(invoiceTemplates)
+      .values(templateData)
+      .returning();
+    
+    return newTemplate;
+  }
+
+  async updateInvoiceTemplate(id: number, templateUpdate: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate | undefined> {
+    // Handle nullable fields properly
+    const templateData: any = {
+      ...templateUpdate,
+      updatedAt: new Date()
+    };
+    
+    // Ensure nullable fields are not set to undefined
+    if ('headerHtml' in templateUpdate) templateData.headerHtml = templateUpdate.headerHtml || null;
+    if ('footerHtml' in templateUpdate) templateData.footerHtml = templateUpdate.footerHtml || null;
+    if ('itemsTableHtml' in templateUpdate) templateData.itemsTableHtml = templateUpdate.itemsTableHtml || null;
+    if ('css' in templateUpdate) templateData.css = templateUpdate.css || null;
+    
+    const [updatedTemplate] = await db.update(invoiceTemplates)
+      .set(templateData)
+      .where(eq(invoiceTemplates.id, id))
+      .returning();
+    
+    return updatedTemplate;
+  }
+
+  async deleteInvoiceTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(invoiceTemplates)
+      .where(eq(invoiceTemplates.id, id));
+    
+    return !!result;
+  }
+
+
 }
 
 // Use the DatabaseStorage implementation instead of MemStorage

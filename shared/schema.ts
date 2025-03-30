@@ -11,6 +11,9 @@ export const SubscriptionTierEnum = pgEnum("subscription_tier", ["NONE", "BASIC"
 // Subscription status enum
 export const SubscriptionStatusEnum = pgEnum("subscription_status", ["ACTIVE", "PAST_DUE", "UNPAID", "CANCELED", "INCOMPLETE", "INCOMPLETE_EXPIRED", "TRIALING"]);
 
+// Invoice template type enum
+export const InvoiceTemplateTypeEnum = pgEnum("invoice_template_type", ["DEFAULT", "MODERN", "PROFESSIONAL", "MINIMAL", "CUSTOM"]);
+
 // Users schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -253,3 +256,56 @@ export const insertNotificationTemplateSchema = createInsertSchema(notificationT
 
 export type InsertNotificationTemplate = z.infer<typeof insertNotificationTemplateSchema>;
 export type NotificationTemplate = typeof notificationTemplates.$inferSelect;
+
+// Company branding schema
+export const companyBranding = pgTable("company_branding", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  companyName: text("company_name").notNull(),
+  companyLogo: text("company_logo"),
+  primaryColor: text("primary_color").default("#3b82f6"),
+  accentColor: text("accent_color").default("#f59e0b"),
+  fontFamily: text("font_family").default("Inter, sans-serif"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertCompanyBrandingSchema = createInsertSchema(companyBranding).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type InsertCompanyBranding = z.infer<typeof insertCompanyBrandingSchema>;
+export type CompanyBranding = typeof companyBranding.$inferSelect;
+
+// Invoice template schema
+export const invoiceTemplates = pgTable("invoice_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  type: InvoiceTemplateTypeEnum("type").notNull().default("DEFAULT"),
+  headerHtml: text("header_html"),
+  footerHtml: text("footer_html"),
+  itemsTableHtml: text("items_table_html"),
+  css: text("css"),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertInvoiceTemplateSchema = createInsertSchema(invoiceTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type InsertInvoiceTemplate = z.infer<typeof insertInvoiceTemplateSchema>;
+export type InvoiceTemplate = typeof invoiceTemplates.$inferSelect;
