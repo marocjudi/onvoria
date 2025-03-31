@@ -2,7 +2,7 @@ Voici le prompt mis à jour avec le nouveau nom **Onvaria** :
 
 ---
 
-### **Projet : Onvaria – Application SaaS de gestion de services de réparation**  
+### **Projet : de – Application SaaS de gestion de services de réparation**  
 
 Développe une application SaaS **scalable et sécurisée**, dédiée aux professionnels de la réparation (téléphones, informatique, objets connectés). L’application doit intégrer la gestion complète des tickets, des paiements (en ligne et en boutique) et des notifications client.  
 

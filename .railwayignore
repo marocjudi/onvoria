@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+**/node_modules
+.vscode
+*.log
+.DS_Store
+coverage
+.nyc_output
+*.md
+!README.md
