@@ -8,6 +8,7 @@ RUN apk add --no-cache bash curl
 # Copier fichiers de configuration uniquement pour installer les dépendances
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY vite.config.ts ./
 
 # Supprimer html-to-pdf-js du package.json et installer les dépendances sans audit
 RUN sed -i 's/"html-to-pdf-js": "[^"]*",//g' package.json && \
@@ -16,8 +17,10 @@ RUN sed -i 's/"html-to-pdf-js": "[^"]*",//g' package.json && \
 # Copier le reste des fichiers
 COPY . .
 
-# Construire l'application
-RUN npm run build
+# Construire l'application et vérifier que le build a réussi
+RUN npm run build && \
+    ls -la dist/public && \
+    test -f dist/public/index.html
 
 # Exposer le port
 EXPOSE 5000
