@@ -35,7 +35,7 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // Désactivé temporairement pour le débogage
       maxAge: 1000 * 60 * 60 * 24, // 24 hours
     },
   };
