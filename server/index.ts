@@ -39,6 +39,7 @@ app.use((req, res, next) => {
     log("Starting server...");
     log(`NODE_ENV: ${process.env.NODE_ENV}`);
     log(`DATABASE_URL exists: ${!!process.env.DATABASE_URL}`);
+    log(`PORT: ${process.env.PORT || 5000}`);
     
     const server = await registerRoutes(app);
     log("Routes registered successfully");
@@ -64,15 +65,9 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on port 5000
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
+    // ALWAYS serve the app on the port specified by Railway
     const port = process.env.PORT || 5000;
-    server.listen({
-      port: Number(port),
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+    server.listen(Number(port), "0.0.0.0", () => {
       log(`Server is running on port ${port}`);
     });
   } catch (error) {
