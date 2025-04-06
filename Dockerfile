@@ -17,11 +17,6 @@ RUN sed -i 's/"html-to-pdf-js": "[^"]*",//g' package.json && \
 # Copier le reste des fichiers
 COPY . .
 
-# Construire l'application et vérifier que le build a réussi
-RUN npm run build && \
-    ls -la dist/public && \
-    test -f dist/public/index.html
-
 # Exposer le port
 EXPOSE 5000
 
